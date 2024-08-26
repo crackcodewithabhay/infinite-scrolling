@@ -1,89 +1,82 @@
 import React, { useEffect, useState } from "react";
-import "./App.css";
+import { Button, Input, Form, Row, Col, Typography, Card, Spin } from 'antd';
 import InfiniteScroll from "react-infinite-scroll-component";
 
-const accessKey = process.env.REACT_APP_UNSPLASH_ACCESS_KEY;
-// const accessKey = undefined;
+const { Title } = Typography;
+
 
 export default function App() {
   const [galleryImages, updateGalleryImages] = useState([]);
   const [pageIndex, updatePageIndex] = useState(1);
   const [query, setQuery] = useState(null);
 
-  if (!accessKey) {
-    return (
-      <a href="https://unsplash.com/documentation" className="error">
-        Get your API key to run it in your own Environment
-      </a>
-    );
-  }
-
   useEffect(() => {
     getPhotos();
   }, [pageIndex]);
 
-  function queryPhotos(e) {
-    e.preventDefault();
+  // if (!accessKey) {
+  //   return (
+  //     <div style={{ textAlign: 'center', padding: '50px' }}>
+  //       <a href="https://unsplash.com/documentation" style={{ color: 'red' }}>
+  //         Get your API key to run it in your own Environment
+  //       </a>
+  //     </div>
+  //   );
+  // }
+
+  function queryPhotos(values) {
+    setQuery(values.query);
     updatePageIndex(1);
     getPhotos();
   }
 
   function getPhotos() {
-    let apiLink = `https://api.unsplash.com/`;
-
-    console.log(query);
-    if (query)
-      apiLink += `search/photos?page=${pageIndex}&client_id=${accessKey}&query=${query}`;
-    else apiLink += `photos?page=${pageIndex}&client_id=${accessKey}`;
-
-    console.log(apiLink);
-
+    let apiLink = `http://localhost:5000/api/photos?page=${pageIndex}`;
+    if (query) {
+      apiLink += `&query=${query}`;
+    }
+  
     fetch(apiLink)
       .then((res) => res.json())
       .then((data) => {
         if (pageIndex === 1) updateGalleryImages([]);
-        console.log(query);
         const APIdata = !query ? data : data.results;
         updateGalleryImages((galleryImages) => [...galleryImages, ...APIdata]);
-        console.log(`API Data = ${APIdata}`);
       });
   }
+  
 
   return (
-    <div className="app">
-      <h1>Unsplash Image Gallery!</h1>
+    <div style={{ padding: '20px' }}>
+      <Title level={1} style={{ textAlign: 'center' }}>Image Gallery</Title>
 
-      <form onSubmit={(event) => queryPhotos(event)}>
-        <input
-          type="text"
-          placeholder="Search Unsplash..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button>Search</button>
-      </form>
+      <Form onFinish={queryPhotos} layout="inline" style={{ marginBottom: '20px', justifyContent: 'center' }}>
+        <Form.Item name="query" style={{ width: '300px' }}>
+          <Input placeholder="Search" />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit">Search</Button>
+        </Form.Item>
+      </Form>
 
       <InfiniteScroll
         dataLength={galleryImages.length}
         next={() => updatePageIndex((pageIndex) => pageIndex + 1)}
         hasMore={true}
-        loader={<h4>Loading More...</h4>}
+        loader={<div style={{ textAlign: 'center', margin: '20px 0' }}><Spin /></div>}
       >
-        <div className="image-grid">
+        <Row gutter={[16, 16]}>
           {galleryImages.map((image, index) => (
-            <a
-              className="image"
-              key={index}
-              href={image.links.html}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img src={image.urls.regular} alt={image.alt_description} />
-            </a>
+            <Col xs={24} sm={12} md={8} lg={6} key={index}>
+              <Card
+                cover={<img alt={image.alt_description} src={image.urls.regular} />}
+                hoverable
+              >
+              </Card>
+            </Col>
           ))}
-        </div>
+        </Row>
       </InfiniteScroll>
-      <span>{"Loaded " + galleryImages.length + " till now!"}</span>
     </div>
   );
 }
